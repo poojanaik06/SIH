@@ -6,7 +6,6 @@ import { DashboardCharts } from "../components/dashboard-charts"
 import { WeatherWidget } from "../components/weather-widget"
 import { FieldStatus } from "../components/field-status"
 import { AIInsights } from "../components/ai-insights"
-import { PredictionCard } from "../components/prediction-card"
 import { YieldChart } from "../components/yield-chart"
 
 export default function Dashboard() {
@@ -85,7 +84,6 @@ export default function Dashboard() {
           {/* Sidebar Widgets */}
           <div className="space-y-6">
             <WeatherWidget />
-            <PredictionCard />
           </div>
         </div>
 

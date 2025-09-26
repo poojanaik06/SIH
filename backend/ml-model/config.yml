@@ -1,0 +1,136 @@
+# Crop Yield Prediction Model Configuration
+
+# Data Configuration
+data:
+  processed_data_path: "data/processed/"
+  target_column: "yield"
+  test_size: 0.2
+  random_state: 42
+
+# Data Preprocessing Configuration
+preprocessing:
+  handle_missing: true
+  missing_strategy: "mean"  # Options: mean, median, mode, interpolate
+  remove_outliers: true
+  outlier_method: "iqr"     # Options: iqr, zscore
+  outlier_factor: 1.5
+  scale_features: true
+  scaling_method: "standard"  # Options: standard, minmax, robust
+
+# Feature Engineering Configuration
+feature_engineering:
+  create_interactions: true
+  create_polynomials: false
+  polynomial_degree: 2
+  create_temporal_features: true
+  create_lag_features: false
+  lag_periods: [1, 2, 3]
+  
+  # Feature selection
+  feature_selection: false
+  selection_method: "correlation"  # Options: correlation, mutual_info, variance
+  max_features: 50
+
+# Model Configuration
+model:
+  type: "xgboost"  # Options: xgboost, random_forest, linear, ridge
+  hyperparameter_tuning: true
+  cv_folds: 5
+  scoring_metric: "r2"  # Options: r2, neg_mean_squared_error, neg_mean_absolute_error
+  
+  # Model-specific parameters
+  xgboost:
+    default_params:
+      n_estimators: 100
+      max_depth: 6
+      learning_rate: 0.1
+      subsample: 0.9
+      colsample_bytree: 0.8
+      random_state: 42
+    
+    tuning_params:
+      n_estimators: [100, 200, 300]
+      max_depth: [3, 6, 9]
+      learning_rate: [0.01, 0.1, 0.2]
+      subsample: [0.8, 0.9, 1.0]
+      colsample_bytree: [0.8, 0.9, 1.0]
+  
+  random_forest:
+    default_params:
+      n_estimators: 100
+      max_depth: 20
+      min_samples_split: 2
+      min_samples_leaf: 1
+      random_state: 42
+    
+    tuning_params:
+      n_estimators: [100, 200, 300]
+      max_depth: [10, 20, null]
+      min_samples_split: [2, 5, 10]
+      min_samples_leaf: [1, 2, 4]
+  
+  ridge:
+    default_params:
+      alpha: 1.0
+      random_state: 42
+    
+    tuning_params:
+      alpha: [0.1, 1.0, 10.0, 100.0]
+
+# Output Configuration
+output:
+  model_save_path: "models/"
+  save_preprocessing_objects: true
+  save_feature_importance: true
+  save_training_plots: true
+  
+  # Model versioning
+  version_models: true
+  model_name_template: "{model_type}_crop_yield_v{version}"
+
+# Evaluation Configuration
+evaluation:
+  cross_validation: true
+  cv_folds: 5
+  test_metrics: ["rmse", "mae", "r2", "mape"]
+  
+  # Performance thresholds
+  min_r2_score: 0.6
+  max_rmse_threshold: 10.0
+  
+  # Plotting
+  create_plots: true
+  plot_predictions: true
+  plot_residuals: true
+  plot_feature_importance: true
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  log_to_file: true
+  log_file: "logs/training.log"
+  log_format: "%(asctime)s - %(levelname)s - %(message)s"
+
+# Advanced Configuration
+advanced:
+  # Early stopping for iterative models
+  early_stopping: true
+  early_stopping_rounds: 50
+  
+  # Model ensemble
+  ensemble_models: false
+  ensemble_methods: ["voting", "stacking"]
+  
+  # Experiment tracking
+  track_experiments: false
+  experiment_name: "crop_yield_prediction"
+  
+  # Model interpretability
+  calculate_shap_values: false
+  save_model_explanations: false
+
+# Environment Configuration
+environment:
+  n_jobs: -1  # Number of CPU cores to use (-1 for all)
+  memory_limit: "8GB"
+  gpu_acceleration: false

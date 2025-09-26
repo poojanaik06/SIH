@@ -1,0 +1,18 @@
+Data Cleaning Summary
+====================
+
+Original dataset shape: (28242, 8)
+Cleaned dataset shape: (28242, 8)
+Number of countries: 101
+Number of crop types: 10
+Year range: 1990 - 2013
+
+Columns:
+- Unnamed: 0
+- Area
+- Item
+- Year
+- hg/ha_yield
+- average_rain_fall_mm_per_year
+- pesticides_tonnes
+- avg_temp

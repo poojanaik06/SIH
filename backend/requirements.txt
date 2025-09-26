@@ -10,3 +10,9 @@ pydantic[email]
 pydantic-settings
 python-dotenv
 requests
+# ML Dependencies
+scikit-learn
+joblib
+pandas
+numpy
+scipy

@@ -1,0 +1,69 @@
+# Crop Yield Prediction ML Model - Requirements
+
+# Core Data Science Libraries
+pandas>=1.5.0
+numpy>=1.21.0
+scipy>=1.9.0
+
+# Machine Learning
+scikit-learn>=1.1.0
+xgboost>=1.6.0
+joblib>=1.2.0
+
+# Data Visualization
+matplotlib>=3.5.0
+seaborn>=0.11.0
+plotly>=5.10.0
+
+# Jupyter Notebook Environment
+jupyter>=1.0.0
+ipykernel>=6.15.0
+nbformat>=5.4.0
+
+# Configuration and YAML
+PyYAML>=6.0
+
+# Progress Bars and Utilities
+tqdm>=4.64.0
+python-dateutil>=2.8.0
+
+# Optional: Advanced ML Libraries
+# lightgbm>=3.3.0          # Alternative gradient boosting
+# catboost>=1.0.0          # Another gradient boosting option
+# shap>=0.41.0             # Model interpretability (uncomment if needed)
+
+# Optional: Statistical Analysis
+# statsmodels>=0.13.0      # Statistical modeling
+# pingouin>=0.5.0          # Statistical tests
+
+# Optional: Geospatial Analysis (if using location data)
+# geopandas>=0.11.0        # Geospatial data processing
+# folium>=0.12.0           # Interactive maps
+
+# Optional: Image Processing (if processing satellite imagery directly)
+# opencv-python>=4.6.0     # Computer vision
+# Pillow>=9.2.0            # Image processing
+
+# Optional: Database Connectivity
+# psycopg2-binary>=2.9.0   # PostgreSQL
+# pymongo>=4.2.0           # MongoDB
+# sqlalchemy>=1.4.0        # SQL toolkit
+
+# Optional: Cloud Storage
+# boto3>=1.24.0            # AWS S3
+# google-cloud-storage>=2.5.0  # Google Cloud Storage
+
+# Optional: Parallel Processing
+# dask>=2022.8.0           # Parallel computing
+# ray>=2.0.0               # Distributed computing
+
+# Development and Testing (optional)
+# pytest>=7.1.0            # Testing framework
+# pytest-cov>=3.0.0        # Coverage reporting
+# black>=22.6.0            # Code formatting
+# flake8>=5.0.0            # Linting
+# mypy>=0.971              # Type checking
+
+# Documentation (optional)
+# sphinx>=5.1.0            # Documentation generation
+# sphinx-rtd-theme>=1.0.0  # Read the Docs theme

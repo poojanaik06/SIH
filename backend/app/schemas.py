@@ -79,4 +79,6 @@ class PredictionInput(BaseModel):
 
 class PredictionOutput(BaseModel):
     predicted_yield: float
-    unit: str = "tons per hectare"
+    unit: str = "hg/ha"
+    confidence: Optional[str] = "high"
+    model_info: Optional[dict] = None

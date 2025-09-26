@@ -2,12 +2,33 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
 from .routes import auth, predict, data_management
+from .ml_service import initialize_ml_service
+import logging
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="SIH Crop Yield API")
 
-origins = ["http://localhost:5173"] # Your frontend URL
+# Initialize ML service on startup
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Initializing ML service...")
+    success = initialize_ml_service()
+    if success:
+        logger.info("✅ ML service initialized successfully")
+    else:
+        logger.warning("⚠️ ML service initialization failed, using fallback model")
+
+origins = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174"
+] # Your frontend URL
 
 app.add_middleware(
     CORSMiddleware,

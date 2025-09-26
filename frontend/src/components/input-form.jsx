@@ -1,32 +1,54 @@
 "use client"
 
 import { useState } from "react"
+import { ApiService } from "../lib/api"
 
 export function InputForm({ onPrediction }) {
   const [formData, setFormData] = useState({
-    soilType: "",
-    temperature: 0,
-    humidity: 0,
-    rainfall: 0,
-    ndvi: 0,
-    cropType: "",
+    area: "",
+    crop: "",
+    year: new Date().getFullYear(),
+    temperature: "",
+    rainfall: "",
+    pesticides: ""
   })
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
+    setError(null)
+
+    // Validate required fields
+    const requiredFields = ['area', 'crop', 'temperature', 'rainfall', 'pesticides']
+    const missingFields = requiredFields.filter(field => !formData[field] || formData[field] === "")
+    
+    if (missingFields.length > 0) {
+      setError(`Please fill in all required fields: ${missingFields.join(', ')}`)
+      setLoading(false)
+      return
+    }
 
     try {
-      // Simulate API call
-      const result = {
-        predictedYield: Math.random() * 100 + 50,
-        confidence: Math.random() * 30 + 70,
-        recommendations: ["Increase irrigation", "Apply fertilizer", "Monitor pest activity"]
+      // Call the actual backend API
+      const result = await ApiService.predictYield({
+        area: formData.area,
+        crop: formData.crop,
+        year: formData.year,
+        temperature: parseFloat(formData.temperature),
+        rainfall: parseFloat(formData.rainfall),
+        pesticides: parseFloat(formData.pesticides)
+      })
+
+      if (result.success) {
+        onPrediction && onPrediction(result)
+      } else {
+        setError(result.error || "Prediction failed. Please check your inputs and try again.")
       }
-      onPrediction && onPrediction(result)
     } catch (error) {
       console.error("Prediction failed:", error)
+      setError("Network error. Please check your connection and try again.")
     } finally {
       setLoading(false)
     }
@@ -34,6 +56,8 @@ export function InputForm({ onPrediction }) {
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+    // Clear error when user starts typing
+    if (error) setError(null)
   }
 
   return (
@@ -41,88 +65,112 @@ export function InputForm({ onPrediction }) {
       <div className="p-6">
         <h3 className="text-lg font-semibold">Crop Yield Prediction</h3>
         <p className="text-sm text-muted-foreground">Enter your field data to get AI-powered yield predictions</p>
+        {error && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
+        )}
       </div>
       <div className="p-6 pt-0">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label htmlFor="cropType" className="text-sm font-medium">Crop Type</label>
+              <label htmlFor="area" className="text-sm font-medium">Area/Location *</label>
               <select 
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                onChange={(e) => handleInputChange("cropType", e.target.value)}
+                value={formData.area}
+                onChange={(e) => handleInputChange("area", e.target.value)}
+                required
+              >
+                <option value="">Select area</option>
+                <option value="India">India</option>
+                <option value="China">China</option>
+                <option value="USA">USA</option>
+                <option value="Brazil">Brazil</option>
+                <option value="Argentina">Argentina</option>
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="crop" className="text-sm font-medium">Crop Type *</label>
+              <select 
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={formData.crop}
+                onChange={(e) => handleInputChange("crop", e.target.value)}
+                required
               >
                 <option value="">Select crop type</option>
-                <option value="wheat">Wheat</option>
-                <option value="corn">Corn</option>
-                <option value="rice">Rice</option>
-                <option value="soybean">Soybean</option>
-                <option value="cotton">Cotton</option>
+                <option value="Wheat">Wheat</option>
+                <option value="Rice">Rice</option>
+                <option value="Maize">Maize</option>
+                <option value="Soybean">Soybean</option>
+                <option value="Cotton">Cotton</option>
               </select>
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="soilType" className="text-sm font-medium">Soil Type</label>
-              <select 
+              <label htmlFor="year" className="text-sm font-medium">Year</label>
+              <input
+                id="year"
+                type="number"
+                min="2020"
+                max="2030"
+                value={formData.year}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                onChange={(e) => handleInputChange("soilType", e.target.value)}
-              >
-                <option value="">Select soil type</option>
-                <option value="clay">Clay</option>
-                <option value="sandy">Sandy</option>
-                <option value="loamy">Loamy</option>
-                <option value="silty">Silty</option>
-              </select>
+                onChange={(e) => handleInputChange("year", e.target.value)}
+              />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="temperature" className="text-sm font-medium">Temperature (°C)</label>
+              <label htmlFor="temperature" className="text-sm font-medium">Average Temperature (°C) *</label>
               <input
                 id="temperature"
                 type="number"
-                placeholder="25"
+                step="0.1"
+                placeholder="25.5"
+                value={formData.temperature}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                onChange={(e) => handleInputChange("temperature", parseFloat(e.target.value))}
+                onChange={(e) => handleInputChange("temperature", e.target.value)}
+                required
               />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="humidity" className="text-sm font-medium">Humidity (%)</label>
-              <input
-                id="humidity"
-                type="number"
-                placeholder="65"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                onChange={(e) => handleInputChange("humidity", parseFloat(e.target.value))}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="rainfall" className="text-sm font-medium">Rainfall (mm)</label>
+              <label htmlFor="rainfall" className="text-sm font-medium">Rainfall (mm/year) *</label>
               <input
                 id="rainfall"
                 type="number"
-                placeholder="150"
+                step="0.1"
+                placeholder="800"
+                value={formData.rainfall}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                onChange={(e) => handleInputChange("rainfall", parseFloat(e.target.value))}
+                onChange={(e) => handleInputChange("rainfall", e.target.value)}
+                required
               />
             </div>
 
             <div className="space-y-2">
-              <label htmlFor="ndvi" className="text-sm font-medium">NDVI Value</label>
+              <label htmlFor="pesticides" className="text-sm font-medium">Pesticides (tonnes) *</label>
               <input
-                id="ndvi"
+                id="pesticides"
                 type="number"
-                step="0.01"
-                placeholder="0.75"
+                step="0.1"
+                placeholder="120"
+                value={formData.pesticides}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                onChange={(e) => handleInputChange("ndvi", parseFloat(e.target.value))}
+                onChange={(e) => handleInputChange("pesticides", e.target.value)}
+                required
               />
             </div>
           </div>
 
+          <div className="text-sm text-muted-foreground">
+            * Required fields
+          </div>
+
           <button 
             type="submit" 
-            className="w-full h-10 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md font-medium transition-colors" 
+            className="w-full h-10 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed" 
             disabled={loading}
           >
             {loading ? "Predicting..." : "Get Yield Prediction"}
