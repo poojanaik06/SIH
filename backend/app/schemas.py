@@ -68,14 +68,29 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     email: Optional[str] = None
 
-# --- Prediction Schemas (Updated) ---
+# --- Prediction Schemas (Updated for Advanced ML Model) ---
 class PredictionInput(BaseModel):
-    area_name: str
+    # Required fields
+    location: str  # Any location string (e.g., "Karnataka, India", "New York, USA")
     crop_name: str
-    year: int
-    avg_temp: float
-    rainfall_mm: float
-    pesticide_tonnes: float
+    
+    # Optional fields (system will use defaults or fetch from APIs)
+    year: Optional[int] = None  # Will use current year if not provided
+    
+    # Advanced optional fields for better predictions
+    nitrogen: Optional[float] = None
+    phosphorus: Optional[float] = None
+    potassium: Optional[float] = None
+    soil_ph: Optional[float] = None
+    humidity: Optional[float] = None
+    ndvi_avg: Optional[float] = None
+    organic_matter: Optional[float] = None
+    
+    # Legacy support for backwards compatibility
+    area_name: Optional[str] = None  # Will map to location if provided
+    avg_temp: Optional[float] = None  # Will be fetched from weather API
+    rainfall_mm: Optional[float] = None  # Will be fetched from weather API
+    pesticide_tonnes: Optional[float] = None  # Will use regional default
 
 class PredictionOutput(BaseModel):
     predicted_yield: float

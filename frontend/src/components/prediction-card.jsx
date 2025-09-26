@@ -51,9 +51,15 @@ export function PredictionCard({ result }) {
     )
   }
 
-  // Show successful prediction result
+  // Show successful prediction result with farmer-friendly information
   const displayResult = result
   const confidence = displayResult.confidence === 'high' ? 85 : displayResult.confidence === 'medium' ? 65 : 45
+  
+  // Extract farmer-friendly information
+  const defaultedParams = displayResult.defaultedParameters || []
+  const autoFetchedWeather = displayResult.autoFetchedWeather || []
+  const yieldTonnes = displayResult.yieldTonnesPerHectare
+  const yieldBushels = displayResult.yieldBushelsPerAcre
 
   const getTrendIcon = () => {
     if (displayResult.predictedYield > 50) {
@@ -94,12 +100,56 @@ export function PredictionCard({ result }) {
             } {displayResult.unit || 'hg/ha'}
           </div>
           <p className="text-sm text-gray-600">Predicted Yield</p>
-          {displayResult.input_data_used && (
+          
+          {/* Additional yield conversions */}
+          {(yieldTonnes || yieldBushels) && (
+            <div className="mt-3 space-y-1 text-xs text-gray-500 border-t pt-2">
+              {yieldTonnes && <p>🌾 {yieldTonnes} tonnes/hectare</p>}
+              {yieldBushels && <p>📏 ~{yieldBushels} bushels/acre</p>}
+            </div>
+          )}
+          
+          {displayResult.locationGeocoded && (
             <div className="mt-3 text-xs text-gray-500">
-              <p>Based on: {displayResult.input_data_used.area}, {displayResult.input_data_used.crop}, {displayResult.input_data_used.year}</p>
+              <p>📍 {displayResult.locationGeocoded}</p>
             </div>
           )}
         </div>
+
+        {/* Farmer-friendly information section */}
+        {(defaultedParams.length > 0 || autoFetchedWeather.length > 0) && (
+          <div className="space-y-3">
+            <h4 className="font-semibold text-gray-800">🌱 Smart Automation Applied</h4>
+            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+              {autoFetchedWeather.length > 0 && (
+                <div className="mb-2">
+                  <p className="text-sm font-medium text-blue-800">🌤️ Weather Data Auto-Fetched:</p>
+                  <p className="text-xs text-blue-600">
+                    {autoFetchedWeather.map(param => {
+                      const paramNames = {
+                        'avg_temp': 'Temperature',
+                        'average_rain_fall_mm_per_year': 'Rainfall',
+                        'humidity': 'Humidity'
+                      }
+                      return paramNames[param] || param
+                    }).join(', ')}
+                  </p>
+                </div>
+              )}
+              {defaultedParams.length > 0 && (
+                <div>
+                  <p className="text-sm font-medium text-blue-800">⚙️ Regional Defaults Applied:</p>
+                  <p className="text-xs text-blue-600">
+                    {defaultedParams.length} soil/climate parameters used regional values
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="text-xs text-gray-600 bg-yellow-50 p-2 rounded border border-yellow-200">
+              💡 <strong>Farmer-Friendly:</strong> No expensive soil testing needed! The system automatically uses typical values for your region.
+            </div>
+          </div>
+        )}
 
         {displayResult.factors && (
           <div className="space-y-3">

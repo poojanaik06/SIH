@@ -74,31 +74,15 @@ export class ApiService {
     localStorage.removeItem('auth_token')
   }
 
-  // Crop prediction API - Updated to use integrated backend
-  static async predictYield(data) {
+  // Farmer-friendly Crop prediction API - Integrated with farmer_predict.py logic
+  static async predictYieldFarmerFriendly(data) {
     try {
       // Validate required fields before sending
-      const requiredFields = ['area', 'crop', 'year', 'temperature', 'rainfall', 'pesticides'];
+      const requiredFields = ['location', 'crop_name'];
       const missingFields = [];
       
       requiredFields.forEach(field => {
-        const altNames = {
-          'area': ['area_name'],
-          'crop': ['crop_name'],
-          'temperature': ['avg_temp'],
-          'rainfall': ['rainfall_mm'],
-          'pesticides': ['pesticide_tonnes']
-        };
-        
-        let hasValue = data[field] !== undefined && data[field] !== null && data[field] !== '';
-        
-        if (!hasValue && altNames[field]) {
-          hasValue = altNames[field].some(alt => 
-            data[alt] !== undefined && data[alt] !== null && data[alt] !== ''
-          );
-        }
-        
-        if (!hasValue) {
+        if (!data[field] || data[field] === '') {
           missingFields.push(field);
         }
       });
@@ -112,16 +96,111 @@ export class ApiService {
         };
       }
       
-      const response = await fetch(`${this.baseUrl}/predict/`, {
+      const response = await fetch(`${this.baseUrl}/predict/farmer-friendly`, {
         method: "POST",
         headers: this.getHeaders(),
         body: JSON.stringify({
-          area_name: data.area || data.area_name,
-          crop_name: data.crop || data.crop_name,
+          location: data.location,
+          crop_name: data.crop_name,
           year: data.year,
-          avg_temp: data.temperature || data.avg_temp,
-          rainfall_mm: data.rainfall || data.rainfall_mm,
-          pesticide_tonnes: data.pesticides || data.pesticide_tonnes
+          // Optional advanced parameters
+          nitrogen: data.nitrogen,
+          phosphorus: data.phosphorus,
+          potassium: data.potassium,
+          soil_ph: data.soil_ph,
+          humidity: data.humidity,
+          ndvi_avg: data.ndvi_avg,
+          organic_matter: data.organic_matter,
+          avg_temp: data.avg_temp,
+          rainfall_mm: data.rainfall_mm,
+          pesticide_tonnes: data.pesticide_tonnes
+        }),
+      })
+      
+      if (response.ok) {
+        const result = await response.json()
+        const modelInfo = result.model_info || {}
+        
+        return {
+          success: true,
+          predictedYield: result.predicted_yield,
+          confidence: result.confidence || 'high',
+          unit: result.unit || 'hg/ha',
+          // Enhanced farmer-friendly information
+          yieldTonnesPerHectare: modelInfo.yield_tonnes_per_hectare,
+          yieldBushelsPerAcre: modelInfo.yield_bushels_per_acre,
+          weatherDataSource: modelInfo.weather_data_source,
+          locationGeocoded: modelInfo.location_geocoded,
+          weatherFetched: modelInfo.weather_fetched,
+          defaultedParameters: modelInfo.defaulted_parameters || [],
+          autoFetchedWeather: modelInfo.auto_fetched_weather || [],
+          regionalDefaults: modelInfo.regional_defaults_used || {},
+          factors: [
+            { name: "Weather Data", impact: "positive", value: modelInfo.weather_fetched ? "Auto-Fetched" : "Regional Default" },
+            { name: "Soil Parameters", impact: "neutral", value: `${modelInfo.defaulted_parameters?.length || 0} defaults applied` },
+            { name: "Location", impact: "positive", value: "Successfully Geocoded" }
+          ],
+          recommendations: [
+            "🌤️ Weather data automatically retrieved from satellite",
+            "🌍 Regional soil parameters applied based on your location", 
+            "📊 Prediction optimized for your specific agricultural region",
+            ...(modelInfo.defaulted_parameters?.length > 0 ? [
+              `⚙️ ${modelInfo.defaulted_parameters.length} parameters used regional defaults`
+            ] : []),
+            ...(modelInfo.auto_fetched_weather?.length > 0 ? [
+              `🌦️ ${modelInfo.auto_fetched_weather.length} weather parameters fetched automatically`
+            ] : [])
+          ]
+        }
+      } else {
+        const error = await response.json()
+        throw new Error(error.detail || 'Farmer-friendly prediction failed')
+      }
+    } catch (error) {
+      console.error("Farmer-friendly Prediction API error:", error)
+      return {
+        success: false,
+        error: error.message || "Network error - unable to connect to farmer prediction service",
+        predictedYield: null
+      }
+    }
+  }
+  static async predictYieldEnhanced(data) {
+    try {
+      // Validate required fields before sending
+      const requiredFields = ['location', 'crop_name'];
+      const missingFields = [];
+      
+      requiredFields.forEach(field => {
+        if (!data[field] || data[field] === '') {
+          missingFields.push(field);
+        }
+      });
+      
+      if (missingFields.length > 0) {
+        return {
+          success: false,
+          error: `Please provide all required fields: ${missingFields.join(', ')}`,
+          predictedYield: null,
+          requiredFields: requiredFields
+        };
+      }
+      
+      const response = await fetch(`${this.baseUrl}/predict/enhanced`, {
+        method: "POST",
+        headers: this.getHeaders(),
+        body: JSON.stringify({
+          location: data.location,
+          crop_name: data.crop_name,
+          year: data.year,
+          // Optional advanced parameters
+          nitrogen: data.nitrogen,
+          phosphorus: data.phosphorus,
+          potassium: data.potassium,
+          soil_ph: data.soil_ph,
+          humidity: data.humidity,
+          ndvi_avg: data.ndvi_avg,
+          organic_matter: data.organic_matter
         }),
       })
       
@@ -132,30 +211,48 @@ export class ApiService {
           predictedYield: result.predicted_yield,
           confidence: result.confidence || 'high',
           unit: result.unit || 'hg/ha',
+          weatherDataSource: result.model_info?.weather_data_source || 'Weather API',
+          locationGeocoded: result.model_info?.location_geocoded,
+          weatherFetched: result.model_info?.weather_fetched,
           factors: [
-            { name: "Soil Quality", impact: "positive", value: "Good" },
-            { name: "Weather", impact: "positive", value: "Favorable" },
-            { name: "Irrigation", impact: "neutral", value: "Adequate" }
+            { name: "Weather Data", impact: "positive", value: "Automatically Fetched" },
+            { name: "Location", impact: "positive", value: "Geocoded Successfully" },
+            { name: "Regional Defaults", impact: "neutral", value: "Applied" }
           ],
           recommendations: [
-            "Continue current irrigation schedule",
-            "Apply nitrogen fertilizer in 2 weeks",
-            "Monitor for pest activity"
+            "Weather data automatically fetched from satellite",
+            "Regional soil parameters applied based on location",
+            "Prediction optimized for your specific area"
           ]
         }
       } else {
         const error = await response.json()
-        throw new Error(error.detail || 'Prediction failed')
+        throw new Error(error.detail || 'Enhanced prediction failed')
       }
     } catch (error) {
-      console.error("Prediction API error:", error)
-      // Return error instead of mock data
+      console.error("Enhanced Prediction API error:", error)
       return {
         success: false,
-        error: error.message || "Network error - unable to connect to prediction service",
+        error: error.message || "Network error - unable to connect to enhanced prediction service",
         predictedYield: null
       }
     }
+  }
+  // Legacy Crop prediction API - Updated to use enhanced endpoint for backwards compatibility
+  static async predictYield(data) {
+    // Convert legacy format to enhanced format
+    const enhancedData = {
+      location: data.area || data.area_name || data.location,
+      crop_name: data.crop || data.crop_name,
+      year: data.year,
+      // Map legacy fields to optional enhanced fields
+      avg_temp: data.temperature || data.avg_temp,
+      rainfall_mm: data.rainfall || data.rainfall_mm,
+      pesticide_tonnes: data.pesticides || data.pesticide_tonnes
+    };
+    
+    // Use the enhanced prediction method
+    return this.predictYieldEnhanced(enhancedData);
   }
 
   // Batch prediction API

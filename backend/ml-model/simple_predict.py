@@ -9,7 +9,9 @@ from typing import Dict, Any
 
 def load_model_artifacts():
     """Load the trained model and its artifacts"""
-    models_dir = 'models'
+    # Get the absolute path to the models directory
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    models_dir = os.path.join(current_dir, 'models')
     model_base_name = 'random_forest_crop_yield_20250926_143733'
     
     # Load model
@@ -49,8 +51,89 @@ def create_features(data: Dict[str, Any]) -> pd.DataFrame:
     features['vegetation_health'] = 3  # Healthy = 3
     features['light_intensity'] = 50000.0
     
-    # Area one-hot encoding
+    # Area one-hot encoding with improved location mapping
     area = data.get('Area', 'India')
+    
+    # Map specific locations to countries
+    def map_location_to_country(location):
+        location_lower = location.lower()
+        
+        # Indian locations
+        indian_locations = ['mangalore', 'bangalore', 'mumbai', 'delhi', 'kolkata', 'chennai', 
+                           'hyderabad', 'pune', 'goa', 'kerala', 'karnataka', 'gujarat', 
+                           'maharashtra', 'punjab', 'haryana', 'uttar pradesh', 'rajasthan',
+                           'bihar', 'west bengal', 'assam', 'odisha', 'tamil nadu', 'andhra pradesh']
+        
+        # US locations
+        us_locations = ['california', 'texas', 'florida', 'new york', 'iowa', 'illinois', 
+                       'kansas', 'nebraska', 'minnesota', 'wisconsin', 'michigan', 'ohio']
+        
+        # Chinese locations
+        chinese_locations = ['beijing', 'shanghai', 'guangzhou', 'shenzhen', 'tianjin', 'chongqing']
+        
+        # Brazilian locations
+        brazilian_locations = ['sao paulo', 'rio de janeiro', 'brasilia', 'salvador', 'fortaleza']
+        
+        # Australian locations
+        australian_locations = ['sydney', 'melbourne', 'brisbane', 'perth', 'adelaide']
+        
+        # Canadian locations
+        canadian_locations = ['toronto', 'vancouver', 'montreal', 'calgary', 'ottawa']
+        
+        # Russian locations
+        russian_locations = ['moscow', 'saint petersburg', 'novosibirsk', 'yekaterinburg']
+        
+        # Check each category
+        for loc in indian_locations:
+            if loc in location_lower:
+                return 'India'
+        
+        for loc in us_locations:
+            if loc in location_lower:
+                return 'USA'
+                
+        for loc in chinese_locations:
+            if loc in location_lower:
+                return 'China'
+                
+        for loc in brazilian_locations:
+            if loc in location_lower:
+                return 'Brazil'
+                
+        for loc in australian_locations:
+            if loc in location_lower:
+                return 'Australia'
+                
+        for loc in canadian_locations:
+            if loc in location_lower:
+                return 'Canada'
+                
+        for loc in russian_locations:
+            if loc in location_lower:
+                return 'Russia'
+        
+        # If India is mentioned anywhere in the location
+        if 'india' in location_lower:
+            return 'India'
+        if 'usa' in location_lower or 'united states' in location_lower or 'america' in location_lower:
+            return 'USA'
+        if 'china' in location_lower:
+            return 'China'
+        if 'brazil' in location_lower:
+            return 'Brazil'
+        if 'australia' in location_lower:
+            return 'Australia'
+        if 'canada' in location_lower:
+            return 'Canada'
+        if 'russia' in location_lower or 'russian federation' in location_lower:
+            return 'Russia'
+            
+        # If no match, return the original area
+        return location
+    
+    # Map the area to a country
+    mapped_area = map_location_to_country(area)
+    
     area_mapping = {
         'Australia': 'area_Australia',
         'Brazil': 'area_Brazil', 
@@ -67,16 +150,43 @@ def create_features(data: Dict[str, Any]) -> pd.DataFrame:
     for area_col in areas:
         features[area_col] = 0
     
-    if area in area_mapping:
-        features[area_mapping[area]] = 1
+    if mapped_area in area_mapping:
+        features[area_mapping[mapped_area]] = 1
+    else:
+        # Default to India if no match found
+        features['area_India'] = 1
     
-    # Item one-hot encoding
+    # Item one-hot encoding with improved crop mapping
     item = data.get('Item', 'Rice')
+    
+    # Normalize crop names
+    def normalize_crop_name(crop):
+        crop_lower = crop.lower().strip()
+        
+        # Map variations to standard names
+        crop_mapping = {
+            'rice': 'Rice',
+            'paddy': 'Rice',
+            'wheat': 'Wheat',
+            'corn': 'Corn',
+            'maize': 'Corn',  # Maize is corn
+            'cotton': 'Cotton',
+            'soybean': 'Soybean',
+            'soybeans': 'Soybean',
+            'soya': 'Soybean',
+            'barley': 'Wheat',  # Map barley to wheat as closest match
+            'sugarcane': 'Rice',  # Map to rice as fallback
+            'potato': 'Rice',  # Map to rice as fallback
+        }
+        
+        return crop_mapping.get(crop_lower, crop)  # Return normalized or original
+    
+    normalized_item = normalize_crop_name(item)
+    
     item_mapping = {
         'Corn': 'item_Corn',
         'Cotton': 'item_Cotton',
         'Rice': 'item_Rice',
-        'Soybeans': 'item_Soybean',
         'Soybean': 'item_Soybean',
         'Wheat': 'item_Wheat'
     }
@@ -85,8 +195,11 @@ def create_features(data: Dict[str, Any]) -> pd.DataFrame:
     for item_col in items:
         features[item_col] = 0
         
-    if item in item_mapping:
-        features[item_mapping[item]] = 1
+    if normalized_item in item_mapping:
+        features[item_mapping[normalized_item]] = 1
+    else:
+        # Default to Rice if no match found
+        features['item_Rice'] = 1
     
     # Engineered features
     features['n_p_ratio'] = features['nitrogen'] / (features['phosphorus'] + 0.001)
