@@ -9,11 +9,14 @@ import { Footer } from "./components/footer"
 import AboutPage from "./pages/about"
 import ContactPage from "./pages/contact"
 import LoginPage from "./pages/login"
+import LoginDebug from "./pages/login-debug"
+import APIDiagnostics from "./pages/api-diagnostics"
 import SignupPage from "./pages/signup"
 import DashboardPage from "./pages/dashboard"
 import AdminPage from "./pages/admin"
 import PredictionsPage from "./pages/predictions"
 import FieldManagementPage from "./pages/field-management"
+import UserDataViewer from "./pages/admin/user-data-viewer"
 import "./App.css"
 
 // Loading component
@@ -80,10 +83,13 @@ export default function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/login-debug" element={<LoginDebug />} />
+            <Route path="/api-diagnostics" element={<APIDiagnostics />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/dashboard/fields" element={<FieldManagementPage />} />
             <Route path="/admin" element={<AdminPage />} />
+            <Route path="/admin/user-data" element={<UserDataViewer />} />
             <Route path="/predictions" element={<PredictionsPage />} />
           </Routes>
           <AppFooter />

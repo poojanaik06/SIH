@@ -1,12 +1,15 @@
 import { Sprout, Users, BarChart3, Settings, Database, Bell, User, LogOut } from "lucide-react"
 import { useState } from "react"
+import { Link, useLocation } from "react-router-dom"
 
 export function AdminNav() {
   const [activeTab, setActiveTab] = useState("overview")
+  const location = useLocation()
 
   const navItems = [
     { id: "overview", label: "Overview", icon: BarChart3, href: "/admin" },
     { id: "users", label: "User Management", icon: Users, href: "/admin/users" },
+    { id: "user-data", label: "User Data Viewer", icon: Database, href: "/admin/user-data" },
     { id: "analytics", label: "Analytics", icon: BarChart3, href: "/admin/analytics" },
     { id: "data", label: "Data Management", icon: Database, href: "/admin/data" },
     { id: "settings", label: "Settings", icon: Settings, href: "/admin/settings" },
@@ -17,25 +20,25 @@ export function AdminNav() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
-            <a href="/" className="flex items-center space-x-2">
+            <Link to="/" className="flex items-center space-x-2">
               <Sprout className="h-8 w-8 text-primary" />
               <span className="text-xl font-bold text-foreground">CropAI Admin</span>
-            </a>
+            </Link>
           </div>
 
           <div className="hidden md:flex items-center space-x-8">
             {navItems.map((item) => (
-              <a
+              <Link
                 key={item.id}
-                href={item.href}
+                to={item.href}
                 className={`flex items-center space-x-2 px-3 py-2 rounded-md transition-colors ${
-                  activeTab === item.id ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary"
+                  location.pathname === item.href ? "text-primary bg-primary/10" : "text-muted-foreground hover:text-primary"
                 }`}
                 onClick={() => setActiveTab(item.id)}
               >
                 <item.icon className="h-4 w-4" />
                 <span>{item.label}</span>
-              </a>
+              </Link>
             ))}
           </div>
 

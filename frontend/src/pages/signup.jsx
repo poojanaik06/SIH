@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { Sprout, Eye, EyeOff, Mail, Lock, User, ArrowRight, Check, AlertCircle } from "lucide-react"
 import { validateSignupForm } from "../utils/validation"
+import { ApiService } from "../lib/api"
 
 export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -32,50 +33,50 @@ export default function SignupPage() {
     setIsLoading(true)
     
     try {
-      // Simulate API call - replace with actual registration
-      console.log("Signup attempt:", formData)
+      // Call backend API for registration
+      const result = await ApiService.register(formData)
       
-      // Simulate successful registration after 1.5 seconds
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      // Store user data in localStorage (replace with proper auth implementation)
-      // Get existing registered users
-      const existingUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
-      
-      // Check if user already exists
-      const userExists = existingUsers.some(user => user.email === formData.email)
-      if (userExists) {
-        setErrors({ general: "An account with this email already exists. Please sign in instead." })
-        setIsLoading(false)
-        return
+      if (result.success) {
+        // After successful registration, log in the user
+        const loginResult = await ApiService.login(formData.email, formData.password)
+        
+        if (loginResult.success) {
+          // Get user profile information
+          const userResult = await ApiService.getCurrentUser()
+          
+          if (userResult.success) {
+            // Store user session
+            localStorage.setItem('user', JSON.stringify({ 
+              email: userResult.data.email, 
+              firstName: userResult.data.first_name,
+              lastName: userResult.data.last_name,
+              farmSize: userResult.data.farm_size,
+              isAuthenticated: true 
+            }))
+            
+            // Navigate to dashboard
+            navigate('/dashboard')
+          } else {
+            setErrors({ general: "Registration successful but failed to get user info. Please try logging in." })
+          }
+        } else {
+          setErrors({ general: "Registration successful but auto-login failed. Please try logging in manually." })
+        }
+      } else {
+        // Handle registration errors
+        if (result.error && typeof result.error === 'string') {
+          if (result.error.includes('already registered') || result.error.includes('already exists')) {
+            setErrors({ general: "An account with this email already exists. Please sign in instead." })
+          } else {
+            setErrors({ general: result.error })
+          }
+        } else {
+          setErrors({ general: "Registration failed. Please try again." })
+        }
       }
-      
-      // Add new user to registered users
-      const newUser = {
-        email: formData.email,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        farmSize: formData.farmSize,
-        password: formData.password, // In real app, this should be hashed
-        registeredAt: new Date().toISOString()
-      }
-      
-      existingUsers.push(newUser)
-      localStorage.setItem('registeredUsers', JSON.stringify(existingUsers))
-      
-      // Store current user session
-      localStorage.setItem('user', JSON.stringify({ 
-        email: formData.email, 
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        farmSize: formData.farmSize,
-        isAuthenticated: true 
-      }))
-      
-      // Navigate to dashboard
-      navigate('/dashboard')
     } catch (error) {
-      setErrors({ general: "Registration failed. Please try again." })
+      console.error('Registration error:', error)
+      setErrors({ general: "Registration failed. Please check your connection and try again." })
     } finally {
       setIsLoading(false)
     }

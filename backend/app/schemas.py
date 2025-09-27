@@ -53,11 +53,16 @@ class Crop(CropBase):
 
 # (You can create full schemas for other data types if needed)
 
-# --- User and Auth Schemas (Mostly unchanged) ---
+# --- User and Auth Schemas (Updated for Registration) ---
 class UserBase(BaseModel):
     email: EmailStr
+    first_name: str
+    last_name: str
+    farm_size: Optional[str] = None
+
 class UserCreate(UserBase):
     password: str
+
 class User(UserBase):
     id: int
     class Config: from_attributes = True

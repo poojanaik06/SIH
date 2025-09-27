@@ -20,7 +20,7 @@ export class ApiService {
   // Authentication methods
   static async login(email, password) {
     try {
-      const response = await fetch(`${this.baseUrl}/auth/login`, {
+      const response = await fetch(`${this.baseUrl}/auth/token`, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
@@ -38,7 +38,7 @@ export class ApiService {
         return { success: true, data }
       } else {
         const error = await response.json()
-        return { success: false, error }
+        return { success: false, error: error.detail || "Login failed" }
       }
     } catch (error) {
       console.error("Login error:", error)
@@ -46,14 +46,20 @@ export class ApiService {
     }
   }
 
-  static async register(email, password) {
+  static async register(userData) {
     try {
-      const response = await fetch(`${this.baseUrl}/auth/register`, {
+      const response = await fetch(`${this.baseUrl}/auth/register/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({
+          email: userData.email,
+          password: userData.password,
+          first_name: userData.firstName,
+          last_name: userData.lastName,
+          farm_size: userData.farmSize
+        })
       })
       
       if (response.ok) {
@@ -61,7 +67,7 @@ export class ApiService {
         return { success: true, data }
       } else {
         const error = await response.json()
-        return { success: false, error }
+        return { success: false, error: error.detail || "Registration failed" }
       }
     } catch (error) {
       console.error("Registration error:", error)
@@ -72,6 +78,27 @@ export class ApiService {
   static logout() {
     this.token = null
     localStorage.removeItem('auth_token')
+  }
+
+  // Get current user profile
+  static async getCurrentUser() {
+    try {
+      const response = await fetch(`${this.baseUrl}/auth/me`, {
+        method: "GET",
+        headers: this.getHeaders(),
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        return { success: true, data }
+      } else {
+        const error = await response.json()
+        return { success: false, error: error.detail || "Failed to get user info" }
+      }
+    } catch (error) {
+      console.error("Get user error:", error)
+      return { success: false, error: "Network error" }
+    }
   }
 
   // Farmer-friendly Crop prediction API - Integrated with farmer_predict.py logic
@@ -154,6 +181,37 @@ export class ApiService {
         }
       } else {
         const error = await response.json()
+        
+        // Handle structured validation errors
+        if (response.status === 400 && error.detail && typeof error.detail === 'object') {
+          const errorDetail = error.detail
+          let errorMessage = errorDetail.error || 'Validation failed'
+          
+          // Add suggestions if available
+          if (errorDetail.suggested_crops && errorDetail.suggested_crops.length > 0) {
+            errorMessage += `\n\n💡 Suggested crops for ${errorDetail.location}: ${errorDetail.suggested_crops.slice(0, 3).join(', ')}`
+          }
+          
+          // Add climate information if available
+          if (errorDetail.climate_data) {
+            const climate = errorDetail.climate_data
+            if (climate.temperature !== undefined || climate.rainfall !== undefined) {
+              errorMessage += `\n\n🌤️ Current conditions: ${climate.temperature}°C, ${climate.rainfall}mm rainfall`
+            }
+          }
+          
+          return {
+            success: false,
+            error: errorMessage,
+            errorType: 'validation',
+            suggestedCrops: errorDetail.suggested_crops || [],
+            climateData: errorDetail.climate_data || {},
+            location: errorDetail.location,
+            crop: errorDetail.crop
+          }
+        }
+        
+        // Handle simple string errors (legacy format)
         throw new Error(error.detail || 'Farmer-friendly prediction failed')
       }
     } catch (error) {

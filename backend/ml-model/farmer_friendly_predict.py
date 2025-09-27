@@ -13,6 +13,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'utils'
 
 from simple_predict import predict_yield
 from utils.weather_fetcher import get_weather_data_for_region, get_weather_data_for_location
+from utils.crop_viability import comprehensive_viability_check, get_alternative_crops
 
 # Regional default values for soil parameters
 # These values are based on typical soil conditions in different regions
@@ -191,7 +192,49 @@ def predict_yield_farmer_friendly(data):
     
     # Get the area from the data
     area = data.get('Area', 'default')
+    crop = data.get('Item', '')
     area_type = data.get('area_type', 'country')  # 'country' or 'location'
+    
+    # First, fetch weather data to get temperature and rainfall for validation
+    print(f"🌍 Fetching weather data for {area}...")
+    
+    # Fetch weather data based on whether it's a country or specific location
+    if area_type == 'location':
+        weather_data = get_weather_data_for_location(area, data.get('Year', 2024))
+    else:
+        weather_data = get_weather_data_for_region(area, data.get('Year', 2024))
+    
+    temperature = weather_data.get('avg_temp', 22.0)
+    rainfall = weather_data.get('average_rain_fall_mm_per_year', 1000.0)
+    
+    # Perform comprehensive viability check
+    print(f"🔍 Validating crop viability for {crop} in {area}...")
+    viability = comprehensive_viability_check(crop, area, temperature, rainfall)
+    
+    if not viability['viable']:
+        # Get alternative crops if current crop is not viable
+        alternatives = get_alternative_crops(area, temperature, rainfall)
+        
+        error_msg = f"❌ {viability['reason']}"
+        if alternatives:
+            error_msg += f"\n💡 Suggested alternatives for {area}: {', '.join(alternatives[:3])}"
+        else:
+            error_msg += f"\n💡 {viability['recommendation']}"
+        
+        return {
+            'success': False,
+            'error': error_msg,
+            'viability_check': viability,
+            'suggested_crops': alternatives,
+            'location': area,
+            'crop': crop,
+            'climate_data': {
+                'temperature': temperature,
+                'rainfall': rainfall
+            }
+        }
+    
+    print(f"✅ {viability['reason']}")
     
     # Get regional defaults
     defaults = get_regional_defaults(area if area_type == 'country' else 'default')
@@ -206,15 +249,6 @@ def predict_yield_farmer_friendly(data):
     
     # Set year (current year if not provided)
     year = farmer_data.get('Year', 2024)
-    
-    # Always fetch weather data to get location-specific conditions
-    print(f"🌍 Fetching weather data for {area}...")
-    
-    # Fetch weather data based on whether it's a country or specific location
-    if area_type == 'location':
-        weather_data = get_weather_data_for_location(area, year)
-    else:
-        weather_data = get_weather_data_for_region(area, year)
     
     # Use real weather data with fallbacks
     farmer_data['average_rain_fall_mm_per_year'] = weather_data.get('average_rain_fall_mm_per_year', 1000.0)
@@ -236,6 +270,11 @@ def predict_yield_farmer_friendly(data):
     
     # Make prediction
     result = predict_yield(farmer_data)
+    
+    # Add viability information to successful results
+    if result['success']:
+        result['viability_check'] = viability
+        result['climate_validation'] = 'passed'
     
     result['defaulted_parameters'] = defaulted_params
     result['auto_fetched_weather'] = auto_fetched_weather

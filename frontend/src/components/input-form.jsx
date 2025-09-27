@@ -7,15 +7,7 @@ export function InputForm({ onPrediction }) {
   const [formData, setFormData] = useState({
     location: "",
     crop: "",
-    year: new Date().getFullYear(),
-    // Advanced optional fields
-    nitrogen: "",
-    phosphorus: "",
-    potassium: "",
-    soil_ph: "",
-    humidity: "",
-    ndvi_avg: "",
-    organic_matter: ""
+    year: new Date().getFullYear()
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -40,21 +32,25 @@ export function InputForm({ onPrediction }) {
       const result = await ApiService.predictYieldFarmerFriendly({
         location: formData.location,
         crop_name: formData.crop,
-        year: formData.year || new Date().getFullYear(),
-        // Include optional advanced parameters if provided
-        nitrogen: formData.nitrogen ? parseFloat(formData.nitrogen) : null,
-        phosphorus: formData.phosphorus ? parseFloat(formData.phosphorus) : null,
-        potassium: formData.potassium ? parseFloat(formData.potassium) : null,
-        soil_ph: formData.soil_ph ? parseFloat(formData.soil_ph) : null,
-        humidity: formData.humidity ? parseFloat(formData.humidity) : null,
-        ndvi_avg: formData.ndvi_avg ? parseFloat(formData.ndvi_avg) : null,
-        organic_matter: formData.organic_matter ? parseFloat(formData.organic_matter) : null
+        year: formData.year || new Date().getFullYear()
       })
 
       if (result.success) {
         onPrediction && onPrediction(result)
       } else {
-        setError(result.error || "Prediction failed. Please check your inputs and try again.")
+        // Handle validation errors with structured information
+        if (result.errorType === 'validation') {
+          let errorMsg = result.error
+          
+          // If we have suggested crops, display them nicely
+          if (result.suggestedCrops && result.suggestedCrops.length > 0) {
+            errorMsg += `\n\n💡 Try these crops instead: ${result.suggestedCrops.slice(0, 3).join(', ')}`
+          }
+          
+          setError(errorMsg)
+        } else {
+          setError(result.error || "Prediction failed. Please check your inputs and try again.")
+        }
       }
     } catch (error) {
       console.error("Prediction failed:", error)
@@ -85,8 +81,18 @@ export function InputForm({ onPrediction }) {
           </p>
         </div>
         {error && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-sm text-red-600">{error}</p>
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-md">
+            <div className="flex items-start space-x-2">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-medium text-red-800 mb-1">Prediction Not Possible</h4>
+                <div className="text-sm text-red-700 whitespace-pre-line">{error}</div>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -150,95 +156,7 @@ export function InputForm({ onPrediction }) {
             </div>
           </div>
 
-          {/* Advanced Optional Fields */}
-          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-            <h4 className="text-sm font-semibold text-gray-800 mb-3">🧪 Advanced Options (Optional)</h4>
-            <p className="text-xs text-gray-600 mb-3">These fields are optional. If left empty, our system will use regional defaults based on your location.</p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <label htmlFor="nitrogen" className="text-sm font-medium">Nitrogen (kg/ha)</label>
-                <input
-                  id="nitrogen"
-                  type="number"
-                  step="0.1"
-                  placeholder="Auto (regional default)"
-                  value={formData.nitrogen}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  onChange={(e) => handleInputChange("nitrogen", e.target.value)}
-                />
-              </div>
 
-              <div className="space-y-2">
-                <label htmlFor="phosphorus" className="text-sm font-medium">Phosphorus (kg/ha)</label>
-                <input
-                  id="phosphorus"
-                  type="number"
-                  step="0.1"
-                  placeholder="Auto (regional default)"
-                  value={formData.phosphorus}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  onChange={(e) => handleInputChange("phosphorus", e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="potassium" className="text-sm font-medium">Potassium (kg/ha)</label>
-                <input
-                  id="potassium"
-                  type="number"
-                  step="0.1"
-                  placeholder="Auto (regional default)"
-                  value={formData.potassium}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  onChange={(e) => handleInputChange("potassium", e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="soil_ph" className="text-sm font-medium">Soil pH</label>
-                <input
-                  id="soil_ph"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="14"
-                  placeholder="Auto (regional default)"
-                  value={formData.soil_ph}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  onChange={(e) => handleInputChange("soil_ph", e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="humidity" className="text-sm font-medium">Humidity (%)</label>
-                <input
-                  id="humidity"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="100"
-                  placeholder="Auto (weather API)"
-                  value={formData.humidity}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  onChange={(e) => handleInputChange("humidity", e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="organic_matter" className="text-sm font-medium">Organic Matter (%)</label>
-                <input
-                  id="organic_matter"
-                  type="number"
-                  step="0.1"
-                  placeholder="Auto (regional default)"
-                  value={formData.organic_matter}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                  onChange={(e) => handleInputChange("organic_matter", e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
 
           <div className="text-sm text-muted-foreground bg-yellow-50 p-3 rounded-lg border border-yellow-200">
             🌟 <strong>Smart Predictions:</strong> Our AI automatically fetches real weather data, calculates coordinates, and applies regional agricultural defaults. Just provide location and crop type for accurate results!

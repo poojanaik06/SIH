@@ -300,14 +300,34 @@ def create_farmer_friendly_prediction(
         prediction_result = predict_yield_farmer_friendly(farmer_data)
         
         if not prediction_result['success']:
-            raise HTTPException(status_code=500, detail=f"Prediction failed: {prediction_result['error']}")
+            # Handle validation failures with proper error codes
+            error_message = prediction_result['error']
+            
+            # Check if this is a viability/validation error vs system error
+            if 'viability_check' in prediction_result or 'suggested_crops' in prediction_result:
+                # This is a validation error (crop/location incompatibility)
+                raise HTTPException(
+                    status_code=400, 
+                    detail={
+                        "error": error_message,
+                        "type": "validation_error",
+                        "location": prediction_result.get('location', location),
+                        "crop": prediction_result.get('crop', payload.crop_name),
+                        "suggested_crops": prediction_result.get('suggested_crops', []),
+                        "climate_data": prediction_result.get('climate_data', {}),
+                        "viability_check": prediction_result.get('viability_check', {})
+                    }
+                )
+            else:
+                # This is a system/model error
+                raise HTTPException(status_code=500, detail=f"Prediction failed: {error_message}")
         
         predicted_yield = prediction_result['predicted_yield']
         defaulted_parameters = prediction_result.get('defaulted_parameters', [])
         auto_fetched_weather = prediction_result.get('auto_fetched_weather', [])
         
-        # Log the farmer-friendly prediction
-        logger.info(f"Farmer-friendly prediction: Location: {location}, Crop: {payload.crop_name}, Yield: {predicted_yield}")
+        # Log successful prediction
+        logger.info(f"Farmer-friendly prediction successful: Location: {location}, Crop: {payload.crop_name}, Yield: {predicted_yield}")
         logger.info(f"Defaulted parameters: {defaulted_parameters}")
         logger.info(f"Auto-fetched weather: {auto_fetched_weather}")
         

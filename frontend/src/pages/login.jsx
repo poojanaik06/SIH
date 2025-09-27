@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import { Sprout, Eye, EyeOff, Mail, Lock, ArrowRight, AlertCircle } from "lucide-react"
 import { validateLoginForm } from "../utils/validation"
+import { ApiService } from "../lib/api"
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
@@ -26,36 +27,47 @@ export default function LoginPage() {
     setIsLoading(true)
     
     try {
-      // Get registered users from localStorage
-      const registeredUsers = JSON.parse(localStorage.getItem('registeredUsers') || '[]')
+      // Call backend API for login
+      const result = await ApiService.login(email, password)
       
-      // Find user with matching email and password
-      const user = registeredUsers.find(user => 
-        user.email === email && user.password === password
-      )
-      
-      if (!user) {
-        setErrors({ general: "Invalid email or password. Please check your credentials or sign up if you don't have an account." })
-        setIsLoading(false)
-        return
+      if (result.success) {
+        // Get user profile information
+        const userResult = await ApiService.getCurrentUser()
+        
+        if (userResult.success) {
+          // Store user session
+          localStorage.setItem('user', JSON.stringify({ 
+            email: userResult.data.email, 
+            firstName: userResult.data.first_name,
+            lastName: userResult.data.last_name,
+            farmSize: userResult.data.farm_size,
+            isAuthenticated: true 
+          }))
+          
+          // Navigate to dashboard
+          navigate('/dashboard')
+        } else {
+          setErrors({ general: "Login successful but failed to get user info. Please try again." })
+        }
+      } else {
+        // Handle login errors with more specific messages
+        console.log('Login failed:', result.error) // Debug log
+        
+        if (result.error && typeof result.error === 'string') {
+          if (result.error.includes('Incorrect email or password')) {
+            setErrors({ general: "Invalid email or password. Please check your credentials and try again." })
+          } else if (result.error.includes('Network error')) {
+            setErrors({ general: "Connection failed. Please check your internet connection and try again." })
+          } else {
+            setErrors({ general: result.error })
+          }
+        } else {
+          setErrors({ general: "Login failed. Please verify your email and password are correct." })
+        }
       }
-      
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Store current user session
-      localStorage.setItem('user', JSON.stringify({ 
-        email: user.email, 
-        firstName: user.firstName,
-        lastName: user.lastName,
-        farmSize: user.farmSize,
-        isAuthenticated: true 
-      }))
-      
-      // Navigate to dashboard
-      navigate('/dashboard')
     } catch (error) {
-      setErrors({ general: "Login failed. Please check your credentials." })
+      console.error('Login error:', error)
+      setErrors({ general: "Login failed. Please check your connection and try again." })
     } finally {
       setIsLoading(false)
     }
